@@ -1,0 +1,19 @@
+amcl: # 定位算法参数
+  ros__parameters:
+    alpha1: 0.2
+    alpha2: 0.2
+    max_particles: 2000 # 粒子滤波的最大粒子数
+    min_particles: 500
+
+bt_navigator: # 行为树控制（决定什么时候搬运，什么时候走路）
+  ros__parameters:
+    global_frame: map
+    robot_base_frame: base_link
+
+local_costmap: # 局部避障地图
+  local_costmap:
+    ros__parameters:
+      robot_radius: 0.25 # 你的机器人半径，设大一点更安全
+      inflation_layer:
+        cost_scaling_factor: 3.0
+        inflation_radius: 0.55 # 障碍物周围 0.55米内不让走
