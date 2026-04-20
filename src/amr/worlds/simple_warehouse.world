@@ -1,0 +1,48 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="simple_warehouse">
+    <include><uri>model://sun</uri></include>
+    <include><uri>model://ground_plane</uri></include>
+
+    <model name="perimeter_walls">
+      <static>true</static>
+      <link name="link">
+        <collision name="east"><pose>5 0 0.5 0 0 0</pose><geometry><box><size>0.1 10 1</size></box></geometry></collision>
+        <visual name="east_v"><pose>5 0 0.5 0 0 0</pose><geometry><box><size>0.1 10 1</size></box></geometry></visual>
+        
+        <collision name="west"><pose>-5 0 0.5 0 0 0</pose><geometry><box><size>0.1 10 1</size></box></geometry></collision>
+        <visual name="west_v"><pose>-5 0 0.5 0 0 0</pose><geometry><box><size>0.1 10 1</size></box></geometry></visual>
+        
+        <collision name="south"><pose>0 -5 0.5 0 0 1.5708</pose><geometry><box><size>0.1 10 1</size></box></geometry></collision>
+        <visual name="south_v"><pose>0 -5 0.5 0 0 1.5708</pose><geometry><box><size>0.1 10 1</size></box></geometry></visual>
+        
+        <collision name="north"><pose>0 5 0.5 0 0 1.5708</pose><geometry><box><size>0.1 10 1</size></box></geometry></collision>
+        <visual name="north_v"><pose>0 5 0.5 0 0 1.5708</pose><geometry><box><size>0.1 10 1</size></box></geometry></visual>
+      </link>
+    </model>
+
+    <model name="shelf_1">
+      <static>true</static>
+      <pose>2 2 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="c1"><geometry><box><size>1.5 0.6 1.0</size></box></geometry></collision>
+        <visual name="v1">
+          <geometry><box><size>1.5 0.6 1.0</size></box></geometry>
+          <material><ambient>0.5 0.25 0 1</ambient><diffuse>0.5 0.25 0 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="shelf_2">
+      <static>true</static>
+      <pose>-2 -2 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="c2"><geometry><box><size>1.5 0.6 1.0</size></box></geometry></collision>
+        <visual name="v2">
+          <geometry><box><size>1.5 0.6 1.0</size></box></geometry>
+          <material><ambient>0.5 0.25 0 1</ambient><diffuse>0.5 0.25 0 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+  </world>
+</sdf>

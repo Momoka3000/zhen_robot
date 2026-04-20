@@ -7,6 +7,7 @@ install(DIRECTORY
   launch
   map
   config
+  worlds
   DESTINATION share/${PROJECT_NAME}
 )
 ament_package()
