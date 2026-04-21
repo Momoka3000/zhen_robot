@@ -21,28 +21,70 @@
       </link>
     </model>
 
-    <model name="shelf_1">
+    <model name="shelf_long_A">
       <static>true</static>
-      <pose>2 2 0.5 0 0 0</pose>
+      <pose>2 1 0.5 0 0 0</pose>
       <link name="link">
-        <collision name="c1"><geometry><box><size>1.5 0.6 1.0</size></box></geometry></collision>
-        <visual name="v1">
-          <geometry><box><size>1.5 0.6 1.0</size></box></geometry>
-          <material><ambient>0.5 0.25 0 1</ambient><diffuse>0.5 0.25 0 1</diffuse></material>
+        <collision name="c"><geometry><box><size>2.5 0.6 1.5</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>2.5 0.6 1.5</size></box></geometry>
+          <material><ambient>0.2 0.2 0.8 1</ambient><diffuse>0.2 0.2 0.8 1</diffuse></material>
         </visual>
       </link>
     </model>
 
-    <model name="shelf_2">
+    <model name="shelf_short_B">
       <static>true</static>
-      <pose>-2 -2 0.5 0 0 0</pose>
-      <link name="link">
-        <collision name="c2"><geometry><box><size>1.5 0.6 1.0</size></box></geometry></collision>
-        <visual name="v2">
-          <geometry><box><size>1.5 0.6 1.0</size></box></geometry>
-          <material><ambient>0.5 0.25 0 1</ambient><diffuse>0.5 0.25 0 1</diffuse></material>
+      <pose>2 -2 0.5 0 0 1.5708</pose> <link name="link">
+        <collision name="c"><geometry><box><size>1.5 0.8 1.5</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>1.5 0.8 1.5</size></box></geometry>
+          <material><ambient>0.8 0.2 0.2 1</ambient><diffuse>0.8 0.2 0.2 1</diffuse></material>
         </visual>
       </link>
     </model>
+
+    <model name="center_partition">
+      <static>true</static>
+      <pose>-1 1.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.2 4.0 1.0</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.2 4.0 1.0</size></box></geometry>
+          <material><ambient>0.7 0.7 0.7 1</ambient><diffuse>0.7 0.7 0.7 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="cargo_box_1">
+      <static>true</static>
+      <pose>-3 -2 0.25 0 0 0.4</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.5 0.5 0.5</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.5 0.5 0.5</size></box></geometry>
+          <material><ambient>0.5 0.4 0.1 1</ambient><diffuse>0.5 0.4 0.1 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="cargo_box_2">
+      <static>true</static>
+      <pose>-3.5 3 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.6 0.6 0.5</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.6 0.6 0.5</size></box></geometry>
+          <material><ambient>0.5 0.4 0.1 1</ambient><diffuse>0.5 0.4 0.1 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="narrow_pass">
+      <static>true</static>
+      <pose>0 -3.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>2.0 0.2 1.0</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>2.0 0.2 1.0</size></box></geometry>
+          <material><ambient>0.3 0.3 0.3 1</ambient><diffuse>0.3 0.3 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
   </world>
 </sdf>
