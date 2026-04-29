@@ -29,52 +29,61 @@
     </inertial>
   </link>
 
+  <!-- 左轮 -->
   <link name="left_wheel">
     <visual><geometry><cylinder radius="0.05" length="0.04"/></geometry><material name="black"/></visual>
     <collision><geometry><cylinder radius="0.05" length="0.04"/></geometry></collision>
     <inertial><mass value="0.2"/><inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/></inertial>
   </link>
   <joint name="left_wheel_joint" type="continuous">
-    <parent link="base_link"/><child link="left_wheel"/>
+    <parent link="base_link"/>
+    <child link="left_wheel"/>
     <origin xyz="-0.1 0.17 -0.03" rpy="-1.5708 0 0"/>
     <axis xyz="0 0 1"/>
   </joint>
 
+  <!-- 右轮 -->
   <link name="right_wheel">
     <visual><geometry><cylinder radius="0.05" length="0.04"/></geometry><material name="black"/></visual>
     <collision><geometry><cylinder radius="0.05" length="0.04"/></geometry></collision>
     <inertial><mass value="0.2"/><inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/></inertial>
   </link>
   <joint name="right_wheel_joint" type="continuous">
-    <parent link="base_link"/><child link="right_wheel"/>
+    <parent link="base_link"/>
+    <child link="right_wheel"/>
     <origin xyz="-0.1 -0.17 -0.03" rpy="-1.5708 0 0"/>
     <axis xyz="0 0 1"/>
   </joint>
 
+  <!-- 万向轮 -->
   <link name="caster_wheel">
     <visual><geometry><sphere radius="0.05"/></geometry><material name="black"/></visual>
     <collision><geometry><sphere radius="0.05"/></geometry></collision>
     <inertial><mass value="0.1"/><inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/></inertial>
   </link>
   <joint name="caster_joint" type="fixed">
-    <parent link="base_link"/><child link="caster_wheel"/>
+    <parent link="base_link"/>
+    <child link="caster_wheel"/>
     <origin xyz="0.15 0 -0.03"/> 
   </joint>
 
+  <!-- 雷达 -->
   <link name="laser_link">
     <visual><geometry><cylinder radius="0.03" length="0.04"/></geometry><material name="black"/></visual>
     <inertial><mass value="0.1"/><inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/></inertial>
   </link>
   <joint name="laser_joint" type="fixed">
-    <parent link="base_link"/><child link="laser_link"/><origin xyz="0.1 0 0.07"/>
+    <parent link="base_link"/>
+    <child link="laser_link"/>
+    <origin xyz="0.1 0 0.07" rpy="0 0 0"/>
   </joint>
 
+  <!-- 差速驱动 -->
   <gazebo>
     <plugin name="diff_drive" filename="libgazebo_ros_diff_drive.so">
       <ros>
         <remapping>cmd_vel:=cmd_vel</remapping>
         <remapping>odom:=odom</remapping>
-        <parameter name="use_sim_time" value="true"/>
       </ros>
       <left_joint>left_wheel_joint</left_joint>
       <right_joint>right_wheel_joint</right_joint>
@@ -90,17 +99,27 @@
     </plugin>
   </gazebo>
 
+  <!-- 雷达 -->
   <gazebo reference="laser_link">
     <sensor type="ray" name="laser_sensor">
-      <visualize>true</visualize><update_rate>10</update_rate>
+      <visualize>true</visualize>
+      <update_rate>10</update_rate>
       <ray>
-        <scan><horizontal><samples>360</samples><min_angle>-3.14159</min_angle><max_angle>3.14159</max_angle></horizontal></scan>
-        <range><min>0.15</min><max>12.0</max></range>
+        <scan>
+          <horizontal>
+            <samples>360</samples>
+            <min_angle>-3.14159</min_angle>
+            <max_angle>3.14159</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.2</min>
+          <max>12.0</max>
+        </range>
       </ray>
       <plugin name="laser_controller" filename="libgazebo_ros_ray_sensor.so">
         <ros>
-            <remapping>~/out:=scan</remapping>
-            <parameter name="use_sim_time" value="true"/>
+          <remapping>~/out:=scan</remapping>
         </ros>
         <output_type>sensor_msgs/LaserScan</output_type>
         <frame_name>laser_link</frame_name>
