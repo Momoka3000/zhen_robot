@@ -25,7 +25,7 @@
     <inertial>
       <mass value="2.0"/>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <inertia ixx="0.02" ixy="0" ixz="0" iyy="0.03" iyz="0" izz="0.04"/>
+      <inertia ixx="0.02" ixy="0" ixz="0" iyy="0.03" iyz="0" izz="0.1"/>
     </inertial>
   </link>
 
@@ -108,8 +108,21 @@
     </sensor>
   </gazebo>
 
-  <gazebo reference="left_wheel"><mu1>1.0</mu1><mu2>1.0</mu2><kp>1000000.0</kp><kd>10.0</kd></gazebo>
-  <gazebo reference="right_wheel"><mu1>1.0</mu1><mu2>1.0</mu2><kp>1000000.0</kp><kd>10.0</kd></gazebo>
-  <gazebo reference="caster_wheel"><mu1>0.01</mu1><mu2>0.01</mu2></gazebo>
+  <gazebo reference="left_wheel">
+    <mu1>1000000.0</mu1>
+    <mu2>1000000.0</mu2>
+    <kp>1000000.0</kp>
+    <kd>10.0</kd>
+  </gazebo>
+  <gazebo reference="right_wheel">
+    <mu1>1000000.0</mu1>
+    <mu2>1000000.0</mu2>
+    <kp>1000000.0</kp>
+    <kd>10.0</kd>
+  </gazebo>
+  <gazebo reference="caster_wheel">
+    <mu1>0.0001</mu1>
+    <mu2>0.0001</mu2>
+  </gazebo>
 
 </robot>
