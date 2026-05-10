@@ -4,27 +4,47 @@ map_server:
     use_sim_time: True
     yaml_filename: "warehouse_map.yaml"
 
-# 2. AMCL 定位：专治旋转漂移
+# 2. AMCL 定位：优化旋转漂移和高速运动稳定性
 amcl:
   ros__parameters:
     use_sim_time: True
-    alpha1: 0.1
-    alpha2: 0.1
-    alpha3: 0.99
-    alpha4: 0.99
+    # 运动模型噪声参数（关键修复：增加旋转噪声以应对高速旋转）
+    alpha1: 0.2    # 旋转运动旋转噪声 σ_rot_rot（从0.1增加到0.2）
+    alpha2: 0.2    # 旋转运动平移噪声 σ_rot_trans（从0.1增加到0.2）
+    alpha3: 0.8    # 平移运动旋转噪声 σ_trans_rot（从0.99降低到0.8）
+    alpha4: 0.8    # 平移运动平移噪声 σ_trans_trans（从0.99降低到0.8）
     base_frame_id: "base_footprint"
     laser_frame_id: "laser_link"
     global_frame_id: "map"
     odom_frame_id: "odom"
-    min_particles: 2500
-    max_particles: 4000
+    # 粒子数量优化：增加最小粒子数以提高高速运动时的稳定性
+    min_particles: 3000   # 从2500增加到3000
+    max_particles: 5000   # 从4000增加到5000
     robot_model_type: "nav2_amcl::DifferentialMotionModel"
     set_initial_pose: True
+    initial_pose.x: 0.0
+    initial_pose.y: 0.0
+    initial_pose.z: 0.0
+    initial_pose.yaw: 0.0
+    # 初始位姿不确定性（关键修复：增加初始分散度）
+    initial_pose.stddev.x: 0.5
+    initial_pose.stddev.y: 0.5
+    initial_pose.stddev.z: 0.0
+    initial_pose.stddev.yaw: 0.3
     scan_topic: "/scan"
-    update_min_d: 0.001
-    update_min_a: 0.001
-    transform_tolerance: 0.2
-    laser_likelihood_max_dist: 0.5
+    # 更新阈值优化：适当提高以减少高频噪声
+    update_min_d: 0.05    # 从0.001增加到0.05
+    update_min_a: 0.05    # 从0.001增加到0.05
+    # 激光模型参数优化
+    laser_likelihood_max_dist: 2.0   # 从0.5增加到2.0，提高远距离特征利用
+    laser_model_type: "likelihood_field"
+    laser_z_hit: 0.95
+    laser_z_rand: 0.05
+    # 恢复策略参数
+    recovery_alpha_slow: 0.001       # 慢速恢复因子
+    recovery_alpha_fast: 0.1         # 快速恢复因子
+    # 坐标变换容差
+    transform_tolerance: 0.5         # 从0.2增加到0.5，提高容错性
 
 # 3. 行为树导航配置
 bt_navigator:

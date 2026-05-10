@@ -78,7 +78,7 @@
     <origin xyz="0.1 0 0.07" rpy="0 0 0"/>
   </joint>
 
-  <!-- 差速驱动 -->
+  <!-- 差速驱动（修复：优化高速旋转稳定性） -->
   <gazebo>
     <plugin name="diff_drive" filename="libgazebo_ros_diff_drive.so">
       <ros>
@@ -89,13 +89,22 @@
       <right_joint>right_wheel_joint</right_joint>
       <wheel_separation>0.34</wheel_separation>
       <wheel_diameter>0.1</wheel_diameter>
-      <max_wheel_torque>20</max_wheel_torque>
-      <max_wheel_acceleration>1.0</max_wheel_acceleration>
+      <!-- 关键修复：降低最大轮速和扭矩，提高旋转稳定性 -->
+      <max_wheel_torque>5.0</max_wheel_torque>      <!-- 从20降低到5 -->
+      <max_wheel_acceleration>0.5</max_wheel_acceleration>  <!-- 从1.0降低到0.5 -->
+      <!-- 新增：速度限制参数 -->
+      <max_wheel_velocity>1.0</max_wheel_velocity>   <!-- 限制最大轮速 -->
+      <!-- 新增：ODOM源选择，使用编码器而非Gazebo ground truth -->
+      <odometry_source>1</odometry_source>           <!-- 1=编码器, 0=Gazebo ground truth -->
+      <!-- 新增：减少里程计噪声 -->
+      <odometry_rate>20.0</odometry_rate>            <!-- 里程计发布频率 -->
       <publish_odom>true</publish_odom>
       <publish_odom_tf>true</publish_odom_tf>
       <publish_wheel_tf>true</publish_wheel_tf>
       <odometry_frame>odom</odometry_frame>
       <robot_base_frame>base_footprint</robot_base_frame>
+      <!-- 关键修复：启用TF发布的时间偏移校正 -->
+      <publish_tform_odom>true</publish_tform_odom>
     </plugin>
   </gazebo>
 
