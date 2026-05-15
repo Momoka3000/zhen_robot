@@ -8,6 +8,7 @@ install(DIRECTORY
   map
   config
   worlds
+  rviz
   DESTINATION share/${PROJECT_NAME}
 )
 ament_package()

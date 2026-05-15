@@ -1,0 +1,43 @@
+{
+  "map_frame": "map",
+  "cargo_cells": {
+    "1": {
+      "name": "cargo_cell_1",
+      "pickup_pose": { "x": -3.55, "y": -3.2, "yaw": 3.14159 }
+    },
+    "2": {
+      "name": "cargo_cell_2",
+      "pickup_pose": { "x": -3.55, "y": -1.1, "yaw": 3.14159 }
+    },
+    "3": {
+      "name": "cargo_cell_3",
+      "pickup_pose": { "x": -3.55, "y": 1.1, "yaw": 3.14159 }
+    },
+    "4": {
+      "name": "cargo_cell_4",
+      "pickup_pose": { "x": -3.55, "y": 3.2, "yaw": 3.14159 }
+    }
+  },
+  "charging_station": {
+    "name": "charging_station",
+    "dock_pose": { "x": 3.9, "y": -3.8, "yaw": -1.5708 }
+  },
+  "shelves": {
+    "1": {
+      "name": "shelf_1",
+      "dropoff_pose": { "x": 1.1, "y": -3.2, "yaw": 0.0 }
+    },
+    "2": {
+      "name": "shelf_2",
+      "dropoff_pose": { "x": 1.1, "y": -1.1, "yaw": 0.0 }
+    },
+    "3": {
+      "name": "shelf_3",
+      "dropoff_pose": { "x": 1.1, "y": 1.1, "yaw": 0.0 }
+    },
+    "4": {
+      "name": "shelf_4",
+      "dropoff_pose": { "x": 1.1, "y": 3.2, "yaw": 0.0 }
+    }
+  }
+}
