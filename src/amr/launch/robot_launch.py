@@ -8,7 +8,7 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     pkg_share = get_package_share_directory("amr")
-    world_path = os.path.join(pkg_share, "worlds", "simple_warehouse.world")
+    world_path = os.path.join(pkg_share, "worlds", "warehouse1.world")
     urdf_path = os.path.join(pkg_share, "urdf", "amr_robot.urdf")
 
     with open(urdf_path, "r", encoding="utf-8") as file:
@@ -60,11 +60,13 @@ def generate_launch_description():
             "-topic",
             "robot_description",
             "-x",
-            "0",
+            "3.9",
             "-y",
-            "0",
+            "-4.35",
             "-z",
             "0.5",
+            "-Y",
+            "1.5708",
         ],
         output="screen",
     )

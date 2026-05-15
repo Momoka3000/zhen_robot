@@ -38,6 +38,15 @@ Visualization Manager:
       Name: AMCL Pose
       Topic:
         Value: /amcl_pose
+    - Class: nav2_rviz_plugins/ParticleCloud
+      Enabled: true
+      Name: AMCL Particle Cloud
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /particle_cloud
   Enabled: true
   Global Options:
     Fixed Frame: map

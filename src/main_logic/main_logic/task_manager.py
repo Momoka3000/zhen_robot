@@ -21,6 +21,8 @@ class MissionStep(Enum):
     NAVIGATING_TO_SHELF = "NAVIGATING_TO_SHELF"
     ALIGNING_SHELF = "ALIGNING_SHELF"
     PLACING = "PLACING"
+    NAVIGATING_TO_CHARGER = "NAVIGATING_TO_CHARGER"
+    CHARGING = "CHARGING"
 
 
 class TaskManager(Node):
@@ -31,6 +33,7 @@ class TaskManager(Node):
         self.declare_parameter("default_cargo_cell", "1")
         self.declare_parameter("default_shelf", "1")
         self.declare_parameter("auto_start", False)
+        self.declare_parameter("auto_charge_when_idle", True)
 
         self.locations = self.load_locations()
         self.map_frame = self.locations.get("map_frame", "map")
@@ -54,6 +57,8 @@ class TaskManager(Node):
             cargo_cell = str(self.get_parameter("default_cargo_cell").value)
             shelf = str(self.get_parameter("default_shelf").value)
             self.start_task(cargo_cell, shelf)
+        elif self.get_parameter("auto_charge_when_idle").value:
+            self.create_timer(3.0, self.charge_when_idle_once)
 
     def load_locations(self):
         configured_path = self.get_parameter("locations_file").value
@@ -85,6 +90,8 @@ class TaskManager(Node):
                 f"cargo cells: {missing_cells or 'none'}, "
                 f"shelves: {missing_shelves or 'none'}"
             )
+        if "charging_station" not in locations:
+            raise ValueError("Incomplete location config. Missing charging_station.")
 
     def logistics_task_callback(self, msg):
         task = self.parse_task(msg.data)
@@ -138,6 +145,16 @@ class TaskManager(Node):
         )
         self.navigate_to(pickup_pose, MissionStep.NAVIGATING_TO_CELL)
 
+    def charge_when_idle_once(self):
+        if self.state == MissionStep.IDLE:
+            self.go_to_charger()
+
+    def go_to_charger(self):
+        dock_pose = self.locations["charging_station"]["dock_pose"]
+        self.current_task = None
+        self.get_logger().info("No active task. Navigating to charging station.")
+        self.navigate_to(dock_pose, MissionStep.NAVIGATING_TO_CHARGER)
+
     def navigate_to(self, pose_config, state):
         if not self.nav_client.wait_for_server(timeout_sec=5.0):
             self.get_logger().error("Nav2 navigate_to_pose action server is unavailable.")
@@ -181,6 +198,9 @@ class TaskManager(Node):
         elif self.pending_target == MissionStep.NAVIGATING_TO_SHELF:
             self.get_logger().info("Arrived near shelf. Waiting for vision alignment.")
             self.state = MissionStep.ALIGNING_SHELF
+        elif self.pending_target == MissionStep.NAVIGATING_TO_CHARGER:
+            self.get_logger().info("Arrived at charging station. Charging.")
+            self.state = MissionStep.CHARGING
 
     def vision_feedback_callback(self, msg):
         if self.state not in (MissionStep.ALIGNING_CELL, MissionStep.ALIGNING_SHELF):
@@ -208,8 +228,11 @@ class TaskManager(Node):
         elif self.state == MissionStep.ALIGNING_SHELF:
             self.state = MissionStep.PLACING
             self.send_arm_command("PLACE")
-            self.get_logger().info("Place complete. Task finished.")
-            self.state = MissionStep.IDLE
+            self.get_logger().info("Place complete. Returning to charging station.")
+            if self.get_parameter("auto_charge_when_idle").value:
+                self.go_to_charger()
+            else:
+                self.state = MissionStep.IDLE
 
     def send_arm_command(self, cmd_str):
         msg = String()

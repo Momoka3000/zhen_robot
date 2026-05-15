@@ -20,7 +20,7 @@
   },
   "charging_station": {
     "name": "charging_station",
-    "dock_pose": { "x": 3.9, "y": -3.8, "yaw": -1.5708 }
+    "dock_pose": { "x": 3.9, "y": -4.35, "yaw": 1.5708 }
   },
   "shelves": {
     "1": {

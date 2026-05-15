@@ -89,6 +89,7 @@
       <right_joint>right_wheel_joint</right_joint>
       <wheel_separation>0.34</wheel_separation>
       <wheel_diameter>0.1</wheel_diameter>
+      <update_rate>50</update_rate>
       <!-- 关键修复：降低最大轮速和扭矩，提高旋转稳定性 -->
       <max_wheel_torque>5.0</max_wheel_torque>      <!-- 从20降低到5 -->
       <max_wheel_acceleration>0.5</max_wheel_acceleration>  <!-- 从1.0降低到0.5 -->
@@ -99,12 +100,12 @@
       <!-- 新增：减少里程计噪声 -->
       <odometry_rate>20.0</odometry_rate>            <!-- 里程计发布频率 -->
       <publish_odom>true</publish_odom>
+      <publish_tf>true</publish_tf>
       <publish_odom_tf>true</publish_odom_tf>
       <publish_wheel_tf>true</publish_wheel_tf>
       <odometry_frame>odom</odometry_frame>
       <robot_base_frame>base_footprint</robot_base_frame>
       <!-- 关键修复：启用TF发布的时间偏移校正 -->
-      <publish_tform_odom>true</publish_tform_odom>
     </plugin>
   </gazebo>
 
