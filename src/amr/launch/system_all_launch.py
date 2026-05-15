@@ -2,7 +2,7 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 
@@ -22,9 +22,23 @@ def generate_launch_description():
                 os.path.join(amr_share, "launch", "navigation_launch.py")
             )
         ),
-        Node(package="vision", executable="color_detector"),
-        Node(package="arm_control", executable="arm_controller"),
-        Node(package="main_logic", executable="task_manager"),
+        TimerAction(
+            period=25.0,
+            actions=[
+                Node(package="vision", executable="color_detector"),
+                Node(package="arm_control", executable="arm_controller"),
+                Node(
+                    package="main_logic",
+                    executable="task_manager",
+                    parameters=[
+                        {
+                            "use_sim_time": True,
+                            "auto_charge_when_idle": False,
+                        }
+                    ],
+                ),
+            ],
+        ),
         Node(
             package="rviz2",
             executable="rviz2",

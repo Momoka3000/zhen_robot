@@ -26,6 +26,7 @@ def generate_launch_description():
             'map': map_dir,
             'use_sim_time': use_sim_time,
             'params_file': params_file,
+            'use_composition': 'False',
         }.items(),
     )
 
