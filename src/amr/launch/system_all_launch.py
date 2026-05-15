@@ -3,6 +3,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
@@ -16,6 +17,7 @@ def generate_launch_description():
     battery_resume_level = LaunchConfiguration("battery_resume_level")
     simulated_charge_rate_percent_per_sec = LaunchConfiguration("simulated_charge_rate_percent_per_sec")
     task_battery_cost_percent = LaunchConfiguration("task_battery_cost_percent")
+    use_battery_simulator = LaunchConfiguration("use_battery_simulator")
     charger_yaw_tolerance = LaunchConfiguration("charger_yaw_tolerance")
     charger_align_angular_speed = LaunchConfiguration("charger_align_angular_speed")
 
@@ -46,6 +48,11 @@ def generate_launch_description():
             description="Simulated battery percentage consumed after each completed task.",
         ),
         DeclareLaunchArgument(
+            "use_battery_simulator",
+            default_value="true",
+            description="Start the simulated battery publisher. Set false when using a real battery topic.",
+        ),
+        DeclareLaunchArgument(
             "charger_yaw_tolerance",
             default_value="0.02",
             description="Yaw tolerance in radians for charger tail alignment.",
@@ -72,6 +79,19 @@ def generate_launch_description():
                 Node(package="arm_control", executable="arm_controller"),
                 Node(
                     package="main_logic",
+                    executable="battery_simulator",
+                    condition=IfCondition(use_battery_simulator),
+                    parameters=[
+                        {
+                            "use_sim_time": True,
+                            "initial_battery_percent": initial_battery_percent,
+                            "simulated_charge_rate_percent_per_sec": simulated_charge_rate_percent_per_sec,
+                            "task_battery_cost_percent": task_battery_cost_percent,
+                        }
+                    ],
+                ),
+                Node(
+                    package="main_logic",
                     executable="task_manager",
                     parameters=[
                         {
@@ -80,8 +100,6 @@ def generate_launch_description():
                             "initial_battery_percent": initial_battery_percent,
                             "min_battery_to_start": min_battery_to_start,
                             "battery_resume_level": battery_resume_level,
-                            "simulated_charge_rate_percent_per_sec": simulated_charge_rate_percent_per_sec,
-                            "task_battery_cost_percent": task_battery_cost_percent,
                             "charger_yaw_tolerance": charger_yaw_tolerance,
                             "charger_align_angular_speed": charger_align_angular_speed,
                         }

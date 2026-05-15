@@ -14,6 +14,7 @@ from geometry_msgs.msg import PoseWithCovarianceStamped, Twist
 from nav2_msgs.action import NavigateToPose
 from rclpy.action import ActionClient
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from std_msgs.msg import Float32, String
 
 
@@ -48,8 +49,6 @@ class TaskManager(Node):
         self.declare_parameter("min_battery_to_start", 30.0)
         self.declare_parameter("battery_resume_level", 80.0)
         self.declare_parameter("initial_battery_percent", 100.0)
-        self.declare_parameter("simulated_charge_rate_percent_per_sec", 1.0)
-        self.declare_parameter("task_battery_cost_percent", 36.0)
         self.declare_parameter("charger_yaw_tolerance", 0.02)
         self.declare_parameter("charger_align_angular_speed", 0.10)
 
@@ -62,11 +61,19 @@ class TaskManager(Node):
         self.task_sequence = 0
         self.battery_percent = float(self.get_parameter("initial_battery_percent").value)
         self.current_yaw = None
+        self.awaiting_battery_update = False
         self.last_feedback_log_time = None
         self.last_nav_unavailable_log_time = None
+        status_qos = QoSProfile(
+            depth=1,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+        )
 
         self.cmd_vel_pub = self.create_publisher(Twist, "/cmd_vel", 10)
         self.arm_cmd_pub = self.create_publisher(String, "/arm_command", 10)
+        self.state_pub = self.create_publisher(String, "task_manager_state", status_qos)
+        self.battery_event_pub = self.create_publisher(String, "battery_event", status_qos)
         self.nav_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
         self.delete_entity_client = self.create_client(DeleteEntity, "/delete_entity")
         self.spawn_entity_client = self.create_client(SpawnEntity, "/spawn_entity")
@@ -118,6 +125,10 @@ class TaskManager(Node):
 
     def battery_callback(self, msg):
         self.battery_percent = max(0.0, min(100.0, float(msg.data)))
+        if self.awaiting_battery_update:
+            self.awaiting_battery_update = False
+            if self.state == MissionStep.IDLE and self.task_queue:
+                self.try_start_next_task()
 
     def amcl_pose_callback(self, msg):
         orientation = msg.pose.pose.orientation
@@ -207,22 +218,19 @@ class TaskManager(Node):
         )
 
     def scheduler_tick(self):
+        self.publish_state()
+
         if self.state == MissionStep.CHARGING:
-            self.simulate_charging()
             self.try_start_next_task()
             return
 
         if self.state == MissionStep.IDLE:
+            if self.awaiting_battery_update:
+                return
             if self.task_queue:
                 self.try_start_next_task()
             elif self.get_parameter("auto_charge_when_idle").value:
                 self.go_to_charger("No active task.")
-
-    def simulate_charging(self):
-        rate = float(self.get_parameter("simulated_charge_rate_percent_per_sec").value)
-        if rate <= 0.0:
-            return
-        self.battery_percent = min(100.0, self.battery_percent + rate)
 
     def has_enough_battery_to_start(self):
         return self.battery_percent >= float(self.get_parameter("min_battery_to_start").value)
@@ -420,26 +428,26 @@ class TaskManager(Node):
         finished_task = self.current_task
         self.place_cargo_on_shelf(finished_task)
         self.current_task = None
-        self.consume_task_battery()
+        self.awaiting_battery_update = True
+        self.publish_battery_event("TASK_COMPLETED")
         self.get_logger().info(
             f"Task #{finished_task['task_id']} complete. Battery={self.battery_percent:.1f}%. "
             "Checking queue and battery."
         )
         self.state = MissionStep.IDLE
-        if self.task_queue:
-            self.try_start_next_task()
-        else:
+        if not self.task_queue:
+            self.awaiting_battery_update = False
             self.go_to_charger("Task complete and no pending task.")
 
-    def consume_task_battery(self):
-        cost = float(self.get_parameter("task_battery_cost_percent").value)
-        if cost <= 0.0:
-            return
-        old_battery = self.battery_percent
-        self.battery_percent = max(0.0, self.battery_percent - cost)
-        self.get_logger().info(
-            f"Simulated task battery use: {old_battery:.1f}% -> {self.battery_percent:.1f}%."
-        )
+    def publish_state(self):
+        msg = String()
+        msg.data = self.state.value
+        self.state_pub.publish(msg)
+
+    def publish_battery_event(self, event):
+        msg = String()
+        msg.data = event
+        self.battery_event_pub.publish(msg)
 
     def align_to_charger_yaw(self):
         if self.current_yaw is None:
@@ -458,6 +466,7 @@ class TaskManager(Node):
                 f"Tail aligned to charger. yaw_error={error:.3f}. Charging."
             )
             self.state = MissionStep.CHARGING
+            self.publish_state()
             return
 
         speed = float(self.get_parameter("charger_align_angular_speed").value)

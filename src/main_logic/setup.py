@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'task_manager = main_logic.task_manager:main'
+            'task_manager = main_logic.task_manager:main',
+            'battery_simulator = main_logic.battery_simulator:main',
         ],
     },
 )
