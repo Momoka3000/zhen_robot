@@ -25,19 +25,23 @@
   "shelves": {
     "1": {
       "name": "shelf_1",
-      "dropoff_pose": { "x": 1.1, "y": -3.2, "yaw": 0.0 }
+      "dropoff_pose": { "x": 1.1, "y": -3.2, "yaw": 0.0 },
+      "cargo_pose": { "x": 2.2, "y": -3.2, "z": 1.61 }
     },
     "2": {
       "name": "shelf_2",
-      "dropoff_pose": { "x": 1.1, "y": -1.1, "yaw": 0.0 }
+      "dropoff_pose": { "x": 1.1, "y": -1.1, "yaw": 0.0 },
+      "cargo_pose": { "x": 2.2, "y": -1.1, "z": 1.61 }
     },
     "3": {
       "name": "shelf_3",
-      "dropoff_pose": { "x": 1.1, "y": 1.1, "yaw": 0.0 }
+      "dropoff_pose": { "x": 1.1, "y": 1.1, "yaw": 0.0 },
+      "cargo_pose": { "x": 2.2, "y": 1.1, "z": 1.61 }
     },
     "4": {
       "name": "shelf_4",
-      "dropoff_pose": { "x": 1.1, "y": 3.2, "yaw": 0.0 }
+      "dropoff_pose": { "x": 1.1, "y": 3.2, "yaw": 0.0 },
+      "cargo_pose": { "x": 2.2, "y": 3.2, "z": 1.61 }
     }
   }
 }

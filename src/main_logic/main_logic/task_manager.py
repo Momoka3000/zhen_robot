@@ -9,7 +9,8 @@ from enum import Enum
 import rclpy
 from action_msgs.msg import GoalStatus
 from ament_index_python.packages import get_package_share_directory
-from geometry_msgs.msg import Twist
+from gazebo_msgs.srv import DeleteEntity, SpawnEntity
+from geometry_msgs.msg import PoseWithCovarianceStamped, Twist
 from nav2_msgs.action import NavigateToPose
 from rclpy.action import ActionClient
 from rclpy.node import Node
@@ -25,6 +26,7 @@ class MissionStep(Enum):
     ALIGNING_SHELF = "ALIGNING_SHELF"
     PLACING = "PLACING"
     NAVIGATING_TO_CHARGER = "NAVIGATING_TO_CHARGER"
+    ALIGNING_CHARGER = "ALIGNING_CHARGER"
     CHARGING = "CHARGING"
 
 
@@ -47,6 +49,9 @@ class TaskManager(Node):
         self.declare_parameter("battery_resume_level", 80.0)
         self.declare_parameter("initial_battery_percent", 100.0)
         self.declare_parameter("simulated_charge_rate_percent_per_sec", 1.0)
+        self.declare_parameter("task_battery_cost_percent", 36.0)
+        self.declare_parameter("charger_yaw_tolerance", 0.02)
+        self.declare_parameter("charger_align_angular_speed", 0.10)
 
         self.locations = self.load_locations()
         self.map_frame = self.locations.get("map_frame", "map")
@@ -56,17 +61,22 @@ class TaskManager(Node):
         self.task_queue = []
         self.task_sequence = 0
         self.battery_percent = float(self.get_parameter("initial_battery_percent").value)
+        self.current_yaw = None
         self.last_feedback_log_time = None
         self.last_nav_unavailable_log_time = None
 
         self.cmd_vel_pub = self.create_publisher(Twist, "/cmd_vel", 10)
         self.arm_cmd_pub = self.create_publisher(String, "/arm_command", 10)
         self.nav_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
+        self.delete_entity_client = self.create_client(DeleteEntity, "/delete_entity")
+        self.spawn_entity_client = self.create_client(SpawnEntity, "/spawn_entity")
 
         self.create_subscription(Float32, "target_offset", self.vision_feedback_callback, 10)
         self.create_subscription(String, "logistics_task", self.logistics_task_callback, 10)
         self.create_subscription(Float32, "battery_percent", self.battery_callback, 10)
+        self.create_subscription(PoseWithCovarianceStamped, "amcl_pose", self.amcl_pose_callback, 10)
         self.create_timer(1.0, self.scheduler_tick)
+        self.create_timer(0.1, self.alignment_tick)
 
         self.get_logger().info(
             "Task manager started. Send one task as 'cell:1 shelf:2 priority:5', "
@@ -108,6 +118,13 @@ class TaskManager(Node):
 
     def battery_callback(self, msg):
         self.battery_percent = max(0.0, min(100.0, float(msg.data)))
+
+    def amcl_pose_callback(self, msg):
+        orientation = msg.pose.pose.orientation
+        self.current_yaw = math.atan2(
+            2.0 * (orientation.w * orientation.z + orientation.x * orientation.y),
+            1.0 - 2.0 * (orientation.y * orientation.y + orientation.z * orientation.z),
+        )
 
     def logistics_task_callback(self, msg):
         tasks = self.parse_tasks(msg.data)
@@ -246,7 +263,7 @@ class TaskManager(Node):
         self.navigate_to(pickup_pose, MissionStep.NAVIGATING_TO_CELL)
 
     def go_to_charger(self, reason):
-        if self.state in (MissionStep.NAVIGATING_TO_CHARGER, MissionStep.CHARGING):
+        if self.state in (MissionStep.NAVIGATING_TO_CHARGER, MissionStep.ALIGNING_CHARGER, MissionStep.CHARGING):
             return
         if not self.nav_server_ready():
             return
@@ -339,11 +356,15 @@ class TaskManager(Node):
             self.get_logger().info("Arrived near cargo cell. Waiting for vision alignment.")
             self.state = MissionStep.ALIGNING_CELL
         elif self.pending_target == MissionStep.NAVIGATING_TO_SHELF:
-            self.get_logger().info("Arrived near shelf. Waiting for vision alignment.")
-            self.state = MissionStep.ALIGNING_SHELF
+            self.get_logger().info("Arrived near shelf. Placing cargo.")
+            self.complete_place()
         elif self.pending_target == MissionStep.NAVIGATING_TO_CHARGER:
-            self.get_logger().info("Arrived at charging station. Charging.")
-            self.state = MissionStep.CHARGING
+            self.get_logger().info("Arrived at charging station. Aligning tail to charger.")
+            self.state = MissionStep.ALIGNING_CHARGER
+
+    def alignment_tick(self):
+        if self.state == MissionStep.ALIGNING_CHARGER:
+            self.align_to_charger_yaw()
 
     def goal_status_name(self, status):
         names = {
@@ -375,25 +396,131 @@ class TaskManager(Node):
         if self.state == MissionStep.ALIGNING_CELL:
             self.state = MissionStep.PICKING
             self.send_arm_command("PICK")
+            self.remove_cargo_from_cell(self.current_task["cargo_cell"])
             shelf_id = self.current_task["shelf"]
             dropoff_pose = self.locations["shelves"][shelf_id]["dropoff_pose"]
             self.get_logger().info("Pick complete. Navigating to target shelf.")
             self.navigate_to(dropoff_pose, MissionStep.NAVIGATING_TO_SHELF)
         elif self.state == MissionStep.ALIGNING_SHELF:
-            self.state = MissionStep.PLACING
-            self.send_arm_command("PLACE")
-            finished_task = self.current_task
-            self.current_task = None
-            self.get_logger().info(
-                f"Task #{finished_task['task_id']} complete. Checking queue and battery."
-            )
-            self.state = MissionStep.IDLE
-            self.try_start_next_task()
+            self.complete_place()
 
     def send_arm_command(self, cmd_str):
         msg = String()
         msg.data = cmd_str
         self.arm_cmd_pub.publish(msg)
+
+    def complete_place(self):
+        if self.current_task is None:
+            self.get_logger().warn("Place requested, but there is no active task.")
+            self.state = MissionStep.IDLE
+            return
+
+        self.state = MissionStep.PLACING
+        self.send_arm_command("PLACE")
+        finished_task = self.current_task
+        self.place_cargo_on_shelf(finished_task)
+        self.current_task = None
+        self.consume_task_battery()
+        self.get_logger().info(
+            f"Task #{finished_task['task_id']} complete. Battery={self.battery_percent:.1f}%. "
+            "Checking queue and battery."
+        )
+        self.state = MissionStep.IDLE
+        if self.task_queue:
+            self.try_start_next_task()
+        else:
+            self.go_to_charger("Task complete and no pending task.")
+
+    def consume_task_battery(self):
+        cost = float(self.get_parameter("task_battery_cost_percent").value)
+        if cost <= 0.0:
+            return
+        old_battery = self.battery_percent
+        self.battery_percent = max(0.0, self.battery_percent - cost)
+        self.get_logger().info(
+            f"Simulated task battery use: {old_battery:.1f}% -> {self.battery_percent:.1f}%."
+        )
+
+    def align_to_charger_yaw(self):
+        if self.current_yaw is None:
+            self.get_logger().warn("Waiting for /amcl_pose before charger tail alignment.")
+            return
+
+        dock_pose = self.locations["charging_station"]["dock_pose"]
+        target_yaw = float(dock_pose.get("yaw", 0.0))
+        error = self.normalize_angle(target_yaw - self.current_yaw)
+        tolerance = float(self.get_parameter("charger_yaw_tolerance").value)
+
+        twist = Twist()
+        if abs(error) <= tolerance:
+            self.cmd_vel_pub.publish(twist)
+            self.get_logger().info(
+                f"Tail aligned to charger. yaw_error={error:.3f}. Charging."
+            )
+            self.state = MissionStep.CHARGING
+            return
+
+        speed = float(self.get_parameter("charger_align_angular_speed").value)
+        twist.angular.z = max(-speed, min(speed, 0.8 * error))
+        self.cmd_vel_pub.publish(twist)
+
+    def normalize_angle(self, angle):
+        return math.atan2(math.sin(angle), math.cos(angle))
+
+    def remove_cargo_from_cell(self, cargo_cell_id):
+        if not self.delete_entity_client.service_is_ready():
+            self.delete_entity_client.wait_for_service(timeout_sec=0.5)
+        if not self.delete_entity_client.service_is_ready():
+            self.get_logger().warn("Gazebo /delete_entity service is unavailable. Cargo remains visible.")
+            return
+
+        request = DeleteEntity.Request()
+        request.name = f"green_cargo_{cargo_cell_id}"
+        self.delete_entity_client.call_async(request)
+        self.get_logger().info(f"Removed cargo model from cell {cargo_cell_id}.")
+
+    def place_cargo_on_shelf(self, task):
+        if not self.spawn_entity_client.service_is_ready():
+            self.spawn_entity_client.wait_for_service(timeout_sec=0.5)
+        if not self.spawn_entity_client.service_is_ready():
+            self.get_logger().warn("Gazebo /spawn_entity service is unavailable. Delivered cargo is not shown.")
+            return
+
+        shelf_id = task["shelf"]
+        shelf_config = self.locations["shelves"][shelf_id]
+        cargo_pose = shelf_config.get("cargo_pose", shelf_config["dropoff_pose"])
+        request = SpawnEntity.Request()
+        request.name = f"delivered_cargo_{task['task_id']}"
+        request.xml = self.green_cargo_sdf(request.name)
+        request.robot_namespace = ""
+        request.initial_pose.position.x = float(cargo_pose["x"])
+        request.initial_pose.position.y = float(cargo_pose["y"])
+        request.initial_pose.position.z = float(cargo_pose.get("z", 0.18))
+        request.initial_pose.orientation.w = 1.0
+        request.reference_frame = "world"
+        self.spawn_entity_client.call_async(request)
+        self.get_logger().info(f"Placed delivered cargo model at shelf {shelf_id}.")
+
+    def green_cargo_sdf(self, name):
+        return f"""
+<sdf version="1.6">
+  <model name="{name}">
+    <static>true</static>
+    <link name="link">
+      <collision name="c">
+        <geometry><box><size>0.22 0.22 0.22</size></box></geometry>
+      </collision>
+      <visual name="v">
+        <geometry><box><size>0.22 0.22 0.22</size></box></geometry>
+        <material>
+          <ambient>0.0 0.9 0.1 1</ambient>
+          <diffuse>0.0 0.9 0.1 1</diffuse>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>
+"""
 
 
 def main(args=None):

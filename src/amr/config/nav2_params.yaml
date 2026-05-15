@@ -6,10 +6,10 @@ map_server:
 amcl:
   ros__parameters:
     use_sim_time: true
-    alpha1: 0.05
-    alpha2: 0.05
-    alpha3: 0.05
-    alpha4: 0.05
+    alpha1: 0.02
+    alpha2: 0.02
+    alpha3: 0.02
+    alpha4: 0.02
     base_frame_id: "base_footprint"
     laser_frame_id: "laser_link"
     global_frame_id: "map"
@@ -76,16 +76,16 @@ controller_server:
       min_vel_y: 0.0
       max_vel_x: 0.22
       max_vel_y: 0.0
-      max_vel_theta: 0.25
+      max_vel_theta: 0.35
       min_speed_xy: 0.0
       max_speed_xy: 0.22
       min_speed_theta: 0.0
       acc_lim_x: 0.5
       acc_lim_y: 0.0
-      acc_lim_theta: 0.4
+      acc_lim_theta: 0.6
       decel_lim_x: -0.5
       decel_lim_y: 0.0
-      decel_lim_theta: -0.4
+      decel_lim_theta: -0.6
       vx_samples: 20
       vy_samples: 1
       vtheta_samples: 20

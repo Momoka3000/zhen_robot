@@ -12,8 +12,8 @@ Visualization Manager:
     - Class: rviz_default_plugins/Map
       Enabled: true
       Name: Map
-      Durability Policy: Transient Local
       Topic:
+        Durability Policy: Transient Local
         Value: /map
     - Class: rviz_default_plugins/TF
       Enabled: true
